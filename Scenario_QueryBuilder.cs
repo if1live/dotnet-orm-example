@@ -10,6 +10,7 @@ class Book
     public int? Id { get; set; }
     public string Lang { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
+    public byte[] Payload { get; set; } = [];
 }
 
 public class Executor : IScenario
@@ -25,13 +26,13 @@ public class Executor : IScenario
 
         await db.Query("book").DeleteAsync();
 
-        var b1 = new Book() { Lang = "en", Title = "foo" };
+        var b1 = new Book() { Lang = "en", Title = "foo", Payload = [1, 2] };
         await db.Query("book").InsertAsync(b1);
 
         // 문제: insert many가 멀쩡하지 않음!
-        var columns = new[] { "lang", "title" };
-        var b2 = new[] { "en", "bar" };
-        var b3 = new[] { "en", "span" };
+        var columns = new[] { "lang", "title", "payload" };
+        var b2 = new object[] { "en", "bar", new byte[] { 3, 4 } };
+        var b3 = new object[] { "en", "span", new byte[] { 0xab, 0xcd } };
         var insertQuery = db.Query("book").AsInsert(columns, [b2, b3]);
         await db.ExecuteAsync(insertQuery);
 
@@ -41,7 +42,8 @@ public class Executor : IScenario
         Console.WriteLine(entities.Count);
         foreach (var ent in entities)
         {
-            Console.WriteLine($"id={ent.Id}, lang={ent.Lang}");
+            var hexString = BitConverter.ToString(ent.Payload).Replace("-", " ");
+            Console.WriteLine($"id={ent.Id}, lang={ent.Lang} payload={hexString}");
         }
     }
 }

@@ -38,34 +38,48 @@ public class BloggingContext : DbContext
     }
 }
 
-class Strategy(BloggingContext dbContext) : IBenchmarkStrategy
+internal class PureStrategy(BloggingContext dbContext) : IBenchmarkStrategy
 {
+    public string Name => "EFCore.Pure";
+    
     public async Task InsertBulkAsync(List<Book> chunk)
     {
         await using var transaction = await dbContext.Database.BeginTransactionAsync();
-        
-        // EFCore.BulkExtensions
-        // mysql 사용시 local-infile 옵션이 켜져야한다.
+        await dbContext.AddRangeAsync(chunk);
+        await dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+    }
+}
+
+// EFCore.BulkExtensions
+// mysql 사용시 local-infile 옵션이 켜져야한다.
+internal class EFCoreBulkExtensionsStrategy(BloggingContext dbContext) : IBenchmarkStrategy
+{
+    public string Name => "EFCore.BulkExtensions";
+    
+    public async Task InsertBulkAsync(List<Book> chunk)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
         await dbContext.BulkInsertAsync(chunk);
-        
-        // pure EFCore
-        // await dbContext.AddRangeAsync(chunk);
-        // await dbContext.SaveChangesAsync();
-        
         await transaction.CommitAsync();
     }
 }
 
 public class Executor : IScenario
 {
-    public async Task ExecuteAsync(string connectionString)
+    public async Task ExecuteAsync(string connectionString, string policy)
     {
         await using var db = new BloggingContext(connectionString);
         await db.Database.EnsureCreatedAsync();
 
         await db.Books.ExecuteDeleteAsync();
 
-        var strategy = new Strategy(db);
+        IBenchmarkStrategy strategy = policy switch
+        {
+            "Pure" => new PureStrategy(db),
+            "EFCore.BulkExtensions" => new EFCoreBulkExtensionsStrategy(db),
+            _ => throw new ArgumentException("not supported policy")
+        };
         await ScenarioHelper.RunBenchmarkAsync(strategy);
 
         // Read

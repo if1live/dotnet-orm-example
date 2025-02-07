@@ -9,6 +9,8 @@ namespace Scenario_QueryBuilder;
 
 class Strategy(QueryFactory db) : IBenchmarkStrategy
 {
+    public string Name => "QueryBuilder";
+    
     public async Task InsertBulkAsync(List<Book> chunk)
     {
         var columns = new[] { "id", "lang", "title" };
@@ -31,7 +33,7 @@ class Strategy(QueryFactory db) : IBenchmarkStrategy
 
 public class Executor : IScenario
 {
-    public async Task ExecuteAsync(string connectionString)
+    public async Task ExecuteAsync(string connectionString, string policy)
     {
         var engine = DatabaseHelper.SelectEngine(connectionString);
         using IDbConnection connection = engine == DatabaseEngine.Sqlite

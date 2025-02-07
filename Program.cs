@@ -8,7 +8,8 @@ var executor_querybuilder = new Scenario_QueryBuilder.Executor();
 var executor_repodb = new Scenario_RepoDB.Executor();
 
 var connectionString_sqlite = "Data Source=hello.db";
-var connectionString_mysql = "Server=localhost;Database=localhost_dev;User=localhost_dev;Password=localhost_dev;AllowLoadLocalInfile=true;";
+var connectionString_mysql =
+    "Server=localhost;Database=localhost_dev;User=localhost_dev;Password=localhost_dev;AllowLoadLocalInfile=true;";
 
 var dbOption = new Option<string>(
     name: "--db",
@@ -27,11 +28,12 @@ rootCommand.SetHandler(async (engine) =>
             _ => throw new ArgumentException("not supported engine")
         };
 
-        await executor_efcore.ExecuteAsync(connectionString);
-        await executor_repodb.ExecuteAsync(connectionString);
-        await executor_dapper.ExecuteAsync(connectionString);
-        await executor_dommel.ExecuteAsync(connectionString);
-        await executor_querybuilder.ExecuteAsync(connectionString);
+        await executor_efcore.ExecuteAsync(connectionString, "Pure");
+        await executor_efcore.ExecuteAsync(connectionString, "EFCore.BulkExtensions");
+        await executor_repodb.ExecuteAsync(connectionString, "");
+        await executor_dapper.ExecuteAsync(connectionString, "");
+        await executor_dommel.ExecuteAsync(connectionString, "");
+        await executor_querybuilder.ExecuteAsync(connectionString, "");
     },
     dbOption);
 

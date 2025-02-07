@@ -8,6 +8,8 @@ namespace Scenario_Dommel;
 
 class Strategy(IDbConnection connection) : IBenchmarkStrategy
 {
+    public string Name => "Dommel";
+    
     public async Task InsertBulkAsync(List<Book> chunk)
     {
         using var transaction = connection.BeginTransaction();
@@ -18,7 +20,7 @@ class Strategy(IDbConnection connection) : IBenchmarkStrategy
 
 public class Executor : IScenario
 {
-    public async Task ExecuteAsync(string connectionString)
+    public async Task ExecuteAsync(string connectionString, string policy)
     {
         var engine = DatabaseHelper.SelectEngine(connectionString);
         using IDbConnection connection = engine == DatabaseEngine.Sqlite

@@ -37,6 +37,8 @@ public class MyCustomTrace : ITrace
 
 class Strategy(IDbConnection connection) : IBenchmarkStrategy
 {
+    public string Name => "RepoDB";
+    
     public async Task InsertBulkAsync(List<Book> chunk)
     {
         using var transaction = (await connection.EnsureOpenAsync()).BeginTransaction();
@@ -47,7 +49,7 @@ class Strategy(IDbConnection connection) : IBenchmarkStrategy
 
 public class Executor : IScenario
 {
-    public async Task ExecuteAsync(string connectionString)
+    public async Task ExecuteAsync(string connectionString, string policy)
     {
         var engine = DatabaseHelper.SelectEngine(connectionString);
         if (engine == DatabaseEngine.Sqlite)

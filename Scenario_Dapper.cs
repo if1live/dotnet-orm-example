@@ -15,9 +15,9 @@ class Book
 
 public class Executor : IScenario
 {
-    public async Task ExecuteAsync()
+    public async Task ExecuteAsync(string connectionString)
     {
-        var connection = new SqliteConnection("Data Source=hello.db");
+        var connection = new SqliteConnection(connectionString);
 
         {
             var sql = "DELETE FROM book";
@@ -45,5 +45,10 @@ public class Executor : IScenario
                 Console.WriteLine($"id={ent.Id}, lang={ent.Lang}");
             }
         }
+    }
+
+    public Task RunBenchmark()
+    {
+        throw new NotImplementedException();
     }
 }

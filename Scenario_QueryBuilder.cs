@@ -1,49 +1,67 @@
-﻿using DemoDatabase;
+﻿using System.Data;
+using DemoDatabase;
 using Microsoft.Data.Sqlite;
+using MySql.Data.MySqlClient;
 using SqlKata.Compilers;
 using SqlKata.Execution;
 
 namespace Scenario_QueryBuilder;
 
-class Book
+class Strategy(QueryFactory db) : IBenchmarkStrategy
 {
-    public int? Id { get; set; }
-    public string Lang { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-    public byte[] Payload { get; set; } = [];
+    public async Task InsertBulkAsync(List<Book> chunk)
+    {
+        var columns = new[] { "id", "lang", "title" };
+        var list = chunk.Select(x =>
+        {
+            return new object[]
+            {
+                x.Id,
+                x.Lang,
+                x.Title,
+            };
+        });
+
+        using var transaction = db.Connection.BeginTransaction();
+        var insertQuery = db.Query("book").AsInsert(columns, list);
+        await db.ExecuteAsync(insertQuery, transaction);
+        transaction.Commit();
+    }
 }
 
 public class Executor : IScenario
 {
-    public async Task ExecuteAsync()
+    public async Task ExecuteAsync(string connectionString)
     {
-        var connection = new SqliteConnection("Data Source=hello.db");
-        var compiler = new SqliteCompiler();
-        var db = new QueryFactory(connection, compiler)
-        {
-            Logger = compiled => Console.WriteLine($"query: {compiled.ToString()}")
-        };
+        var engine = DatabaseHelper.SelectEngine(connectionString);
+        using IDbConnection connection = engine == DatabaseEngine.Sqlite
+            ? new SqliteConnection(connectionString)
+            : new MySqlConnection(connectionString);
+        connection.Open();
+
+        Compiler compiler = engine == DatabaseEngine.Sqlite
+            ? new SqliteCompiler()
+            : new MySqlCompiler();
+        var db = new QueryFactory(connection, compiler);
+        // {
+        //     Logger = compiled => Console.WriteLine($"query: {compiled.ToString()}")
+        // };
 
         await db.Query("book").DeleteAsync();
 
-        var b1 = new Book() { Lang = "en", Title = "foo", Payload = [1, 2] };
-        await db.Query("book").InsertAsync(b1);
-
         // 문제: insert many가 멀쩡하지 않음!
-        var columns = new[] { "lang", "title", "payload" };
-        var b2 = new object[] { "en", "bar", new byte[] { 3, 4 } };
-        var b3 = new object[] { "en", "span", new byte[] { 0xab, 0xcd } };
-        var insertQuery = db.Query("book").AsInsert(columns, [b2, b3]);
-        await db.ExecuteAsync(insertQuery);
+        var strategy = new Strategy(db);
+        await ScenarioHelper.RunBenchmarkAsync(strategy);
 
         var founds = await db.Query("book").Where("lang", "en").GetAsync<Book>();
         var entities = founds.ToList();
-
         Console.WriteLine(entities.Count);
+        /*
         foreach (var ent in entities)
         {
             var hexString = BitConverter.ToString(ent.Payload).Replace("-", " ");
             Console.WriteLine($"id={ent.Id}, lang={ent.Lang} payload={hexString}");
         }
+        */
     }
 }

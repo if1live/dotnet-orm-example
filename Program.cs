@@ -1,4 +1,5 @@
-﻿using DemoDatabase;
+﻿using System.CommandLine;
+using DemoDatabase;
 
 var executor_dapper = new Scenario_Dapper.Executor();
 var executor_dommel = new Scenario_Dommel.Executor();
@@ -15,22 +16,31 @@ var table = new Dictionary<string, IScenario>()
     ["repodb"] = executor_repodb,
 };
 
-// var connectionString = "Data Source=hello.db";
-var connectionString = "Server=localhost;Database=localhost_dev;User=localhost_dev;Password=localhost_dev;";
+var connectionString_sqlite = "Data Source=hello.db";
+var connectionString_mysql = "Server=localhost;Database=localhost_dev;User=localhost_dev;Password=localhost_dev;";
 
-if (args.Length == 0)
-{
-    await executor_efcore.ExecuteAsync(connectionString);
-    await executor_repodb.ExecuteAsync(connectionString);
-    await executor_dommel.ExecuteAsync(connectionString);
-    await executor_querybuilder.ExecuteAsync(connectionString);
-    return;
-}
+var dbOption = new Option<string>(
+    name: "--db",
+    description: "db"
+);
 
-var name = args[^1];
-if (table.TryGetValue(name, out var scenario))
-{
-    await scenario.ExecuteAsync(connectionString);
-}
-else
-    Console.WriteLine($"Invalid name: {name}");
+var rootCommand = new RootCommand("Sample app for System.CommandLine");
+rootCommand.AddOption(dbOption);
+
+rootCommand.SetHandler(async (engine) =>
+    {
+        var connectionString = engine switch
+        {
+            "sqlite" => connectionString_sqlite,
+            "mysql" => connectionString_mysql,
+            _ => throw new ArgumentException("not supported engine")
+        };
+
+        await executor_efcore.ExecuteAsync(connectionString);
+        await executor_repodb.ExecuteAsync(connectionString);
+        await executor_dommel.ExecuteAsync(connectionString);
+        await executor_querybuilder.ExecuteAsync(connectionString);
+    },
+    dbOption);
+
+return await rootCommand.InvokeAsync(args);

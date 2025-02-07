@@ -45,6 +45,7 @@ class Strategy(BloggingContext dbContext) : IBenchmarkStrategy
         await using var transaction = await dbContext.Database.BeginTransactionAsync();
         
         // EFCore.BulkExtensions
+        // mysql 사용시 local-infile 옵션이 켜져야한다.
         await dbContext.BulkInsertAsync(chunk);
         
         // pure EFCore

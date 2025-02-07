@@ -8,7 +8,7 @@ var executor_querybuilder = new Scenario_QueryBuilder.Executor();
 var executor_repodb = new Scenario_RepoDB.Executor();
 
 var connectionString_sqlite = "Data Source=hello.db";
-var connectionString_mysql = "Server=localhost;Database=localhost_dev;User=localhost_dev;Password=localhost_dev;";
+var connectionString_mysql = "Server=localhost;Database=localhost_dev;User=localhost_dev;Password=localhost_dev;AllowLoadLocalInfile=true;";
 
 var dbOption = new Option<string>(
     name: "--db",

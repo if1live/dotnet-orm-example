@@ -7,15 +7,6 @@ var executor_efcore = new Scenario_EFCore.Executor();
 var executor_querybuilder = new Scenario_QueryBuilder.Executor();
 var executor_repodb = new Scenario_RepoDB.Executor();
 
-var table = new Dictionary<string, IScenario>()
-{
-    ["dapper"] = executor_dapper,
-    ["dommel"] = executor_dommel,
-    ["efcore"] = executor_efcore,
-    ["querybuilder"] = executor_querybuilder,
-    ["repodb"] = executor_repodb,
-};
-
 var connectionString_sqlite = "Data Source=hello.db";
 var connectionString_mysql = "Server=localhost;Database=localhost_dev;User=localhost_dev;Password=localhost_dev;";
 
@@ -38,6 +29,7 @@ rootCommand.SetHandler(async (engine) =>
 
         await executor_efcore.ExecuteAsync(connectionString);
         await executor_repodb.ExecuteAsync(connectionString);
+        await executor_dapper.ExecuteAsync(connectionString);
         await executor_dommel.ExecuteAsync(connectionString);
         await executor_querybuilder.ExecuteAsync(connectionString);
     },

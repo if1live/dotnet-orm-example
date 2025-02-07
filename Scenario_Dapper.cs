@@ -1,23 +1,32 @@
 ﻿using Dapper;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
 using DemoDatabase;
 using Microsoft.Data.Sqlite;
+using MySql.Data.MySqlClient;
 
 namespace Scenario_Dapper;
 
-[Table("book")]
-class Book
+class Strategy(IDbConnection connection) : IBenchmarkStrategy
 {
-    public int Id { get; set; }
-    public string Lang { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
+    public async Task InsertBulkAsync(List<Book> chunk)
+    {
+        using var transaction = connection.BeginTransaction();
+        var sql = "INSERT INTO book(id, lang, title) VALUES (@Id, @Lang, @Title)";
+        var rowsAffected = await connection.ExecuteAsync(sql, chunk, transaction);
+        transaction.Commit();
+    }
 }
 
 public class Executor : IScenario
 {
     public async Task ExecuteAsync(string connectionString)
     {
-        var connection = new SqliteConnection(connectionString);
+        var engine = DatabaseHelper.SelectEngine(connectionString);
+        using IDbConnection connection = engine == DatabaseEngine.Sqlite
+            ? new SqliteConnection(connectionString)
+            : new MySqlConnection(connectionString);
+        connection.Open();
 
         {
             var sql = "DELETE FROM book";
@@ -25,14 +34,8 @@ public class Executor : IScenario
         }
 
         {
-            var sql = "INSERT INTO book(id, lang, title) VALUES (@Id, @Lang, @Title)";
-
-            var b1 = new Book() { Id = 1, Lang = "en", Title = "foo" };
-            var b2 = new Book() { Id = 2, Lang = "en", Title = "bar" };
-            var books = new List<Book> { b1, b2 };
-
-            var rowsAffected = await connection.ExecuteAsync(sql, books);
-            Console.WriteLine($"{rowsAffected} row(s) inserted.");
+            var strategy = new Strategy(connection);
+            await ScenarioHelper.RunBenchmarkAsync(strategy);
         }
 
         {
@@ -40,15 +43,10 @@ public class Executor : IScenario
             var books = await connection.QueryAsync<Book>(sql, new { Lang = "en" });
             var entities = books.ToList();
             Console.WriteLine(entities.Count);
-            foreach (var ent in entities)
-            {
-                Console.WriteLine($"id={ent.Id}, lang={ent.Lang}");
-            }
+            // foreach (var ent in entities)
+            // {
+            //     Console.WriteLine($"id={ent.Id}, lang={ent.Lang}");
+            // }
         }
-    }
-
-    public Task RunBenchmark()
-    {
-        throw new NotImplementedException();
     }
 }

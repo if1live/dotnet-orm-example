@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text;
 
 namespace DemoDatabase;
 
@@ -16,10 +17,11 @@ public class ScenarioHelper
 {
     public static async Task RunBenchmarkAsync(IBenchmarkStrategy strategy)
     {
-        var books = Book.CreateMany(100_00);
-        var chunks = books.Chunk(100).Select(x => x.ToList()).ToList();
-        // var books = Book.CreateMany(2);
-        // var chunks = books.Chunk(2).Select(x => x.ToList());
+        var iteration = 100;
+        var chunkSize = 100;
+
+        var books = Book.CreateMany(iteration * chunkSize);
+        var chunks = books.Chunk(chunkSize).Select(x => x.ToList()).ToList();
 
         var stopwatch = Stopwatch.StartNew();
         var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
@@ -34,8 +36,23 @@ public class ScenarioHelper
 
         stopwatch.Stop();
 
-        var ty = strategy.GetType().Namespace;
-        var millis = stopwatch.ElapsedMilliseconds;
-        Console.WriteLine($"{ty}: total={millis} ms\tchunk={millis / chunks.Count()} ms\tallocated={allocatedMb} MB");
+        var ty = strategy.GetType().Namespace ?? "";
+        var name = ty.Split('_').Last() ?? "BLANK";
+
+        var totalMillis = stopwatch.ElapsedMilliseconds;
+        var chunkMillis = totalMillis / chunks.Count();
+
+        var sb = new StringBuilder();
+        if (name.Length > 8)
+            sb.Append($"{name}\t");
+        else
+            sb.Append($"{name}\t\t");
+
+        sb.Append($"iteration={iteration}\t");
+        sb.Append($"chunkSize={chunkSize}\t");
+        sb.Append($"total={totalMillis} ms\t");
+        sb.Append($"chunk={chunkMillis} ms\t");
+        sb.Append($"allocated={allocatedMb} MB");
+        Console.WriteLine(sb.ToString());
     }
 }

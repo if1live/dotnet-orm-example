@@ -1,4 +1,5 @@
 ﻿using DemoDatabase;
+using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -42,8 +43,14 @@ class Strategy(BloggingContext dbContext) : IBenchmarkStrategy
     public async Task InsertBulkAsync(List<Book> chunk)
     {
         await using var transaction = await dbContext.Database.BeginTransactionAsync();
-        await dbContext.AddRangeAsync(chunk);
-        await dbContext.SaveChangesAsync();
+        
+        // EFCore.BulkExtensions
+        await dbContext.BulkInsertAsync(chunk);
+        
+        // pure EFCore
+        // await dbContext.AddRangeAsync(chunk);
+        // await dbContext.SaveChangesAsync();
+        
         await transaction.CommitAsync();
     }
 }

@@ -16,13 +16,13 @@ public interface IBenchmarkStrategy
 
 public static class ScenarioHelper
 {
+    public static int Iteration { get; set; } = 10;
+    public static int ChunkSize { get; set; } = 100;
+
     public static async Task RunBenchmarkAsync(IBenchmarkStrategy strategy)
     {
-        var iteration = 100;
-        var chunkSize = 100;
-
-        var books = Book.CreateMany(iteration * chunkSize);
-        var chunks = books.Chunk(chunkSize).Select(x => x.ToList()).ToList();
+        var books = Book.CreateMany(Iteration * ChunkSize);
+        var chunks = books.Chunk(ChunkSize).Select(x => x.ToList()).ToList();
 
         var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
 
@@ -34,7 +34,7 @@ public static class ScenarioHelper
 
         var allocatedBytesAfter = GC.GetAllocatedBytesForCurrentThread();
         var allocatedBytes = allocatedBytesAfter - allocatedBytesBefore;
-        var allocatedMb = allocatedBytes / 1024 / 1024;
+        var allocatedMb = allocatedBytes / 1024 / chunks.Count();
 
         stopwatch.Stop();
         var totalMillis = stopwatch.ElapsedMilliseconds;
@@ -49,11 +49,11 @@ public static class ScenarioHelper
         else
             sb.Append($"{name}\t\t\t");
 
-        sb.Append($"iteration={iteration}\t");
-        sb.Append($"chunkSize={chunkSize}\t");
+        sb.Append($"iteration={Iteration}\t");
+        sb.Append($"chunkSize={ChunkSize}\t");
         sb.Append($"total={totalMillis} ms\t");
         sb.Append($"chunk={chunkMillis} ms\t");
-        sb.Append($"allocated={allocatedMb} MB");
+        sb.Append($"allocated={allocatedMb} KB");
         Console.WriteLine(sb.ToString());
     }
 }

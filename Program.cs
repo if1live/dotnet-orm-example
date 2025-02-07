@@ -16,11 +16,29 @@ var dbOption = new Option<string>(
     description: "db"
 );
 
+
+var chunkSizeOption = new Option<int>(
+    name: "--chunk",
+    description: "chunk size",
+    getDefaultValue: () => 100
+);
+
+var iterationOption = new Option<int>(
+    name: "--iteration",
+    description: "iteration",
+    getDefaultValue: () => 10
+);
+
 var rootCommand = new RootCommand("Sample app for System.CommandLine");
 rootCommand.AddOption(dbOption);
+rootCommand.AddOption(chunkSizeOption);
+rootCommand.AddOption(iterationOption);
 
-rootCommand.SetHandler(async (engine) =>
+rootCommand.SetHandler(async (engine, iteration, chunkSize) =>
     {
+        ScenarioHelper.Iteration = iteration;
+        ScenarioHelper.ChunkSize = chunkSize;
+        
         var connectionString = engine switch
         {
             "sqlite" => connectionString_sqlite,
@@ -35,6 +53,6 @@ rootCommand.SetHandler(async (engine) =>
         await executor_dommel.ExecuteAsync(connectionString, "");
         await executor_querybuilder.ExecuteAsync(connectionString, "");
     },
-    dbOption);
+    dbOption, iterationOption, chunkSizeOption);
 
 return await rootCommand.InvokeAsync(args);
